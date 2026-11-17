@@ -4,7 +4,8 @@
 
 ## 模块与业务流程
 数据接入（JSON/CSV、字段验证、批次指纹）→ 参数化分析（异步 Python worker）→ 结果复核（指标、图形、明细、解释、批准）→ 定时分发（本地收件箱、CSV/JSON、SHA256）；另有业务总览和审计轨迹。
-三个贯穿全栈的实体：Dataset 数据批次、Job 分析任务、Report 分发计划；辅助 User、Audit、Delivery。
+跨库调拨：负责人按已批准预测建立调拨单并登记各库现存量；发运扣出库量转在途，收货分批且累计不超发运、只增收库量，撤回未收部分先转退运、原库确认退回才恢复可用；收货与撤回并发时按先落账者裁决，已收部分不退运；发运/收货/退回凭 request_id 幂等重试，逐笔台账可追查待发、在途、部分收货、退运与结清去向，各库可用量与在途量始终守恒。预测与简报不被调拨改写。
+三个贯穿全栈的实体：Dataset 数据批次、Job 分析任务、Report 分发计划；调拨域：Warehouse 库房、StockBalance 现存量、Transfer 调拨单、TransferEvent 逐笔台账；辅助 User、Audit、Delivery。
 
 ## 快速启动
 ```bash
@@ -18,9 +19,9 @@ docker compose exec -T backend python -m scripts.seed_demo
 ## 演示账号与权限
 |账号|密码|真实权限|
 |---|---|---|
-|admin@demo.local|Demo123!|接入、执行、批准、分发、暂停、读取与下载|
-|analyst@demo.local|Demo123!|接入、执行、读取与下载；不能批准或安排分发|
-|viewer@demo.local|Demo123!|只读与下载|
+|admin@demo.local|Demo123!|接入、执行、批准、分发、暂停、读取与下载；建调拨单、登记现存量、发运、收货、撤回与确认退回|
+|analyst@demo.local|Demo123!|接入、执行、读取与下载；不能批准或安排分发；调拨台账只读|
+|viewer@demo.local|Demo123!|只读与下载（含调拨台账）|
 
 ## 技术与本地开发
 Python 3.12 / FastAPI / SQLAlchemy / NumPy / SciPy / scikit-learn；PostgreSQL 16；Redis 7；Nginx；原生 HTML CSS JavaScript ES modules（用户指定）。后端所有校验、持久化和算法在服务端。无前端打包步骤。
